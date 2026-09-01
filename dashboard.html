@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dropout Risk Management System</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #eee; }
+
+/* Header */
+.header { background: #1a1d2e; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2d3e; }
+.header h1 { font-size: 18px; font-weight: 600; color: #fff; }
+.header .subtitle { font-size: 12px; color: #888; margin-top: 2px; }
+.header .brand { font-size: 12px; color: #4ade80; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; display: inline-block; margin-right: 6px; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* Tabs */
+.tabs { display: flex; background: #1a1d2e; border-bottom: 1px solid #2a2d3e; }
+.tab { padding: 12px 24px; font-size: 13px; cursor: pointer; color: #888; border-bottom: 2px solid transparent; transition: all 0.2s; }
+.tab.active { color: #4ade80; border-bottom-color: #4ade80; }
+.tab:hover { color: #fff; }
+
+/* Panels */
+.panel { display: none; padding: 20px; }
+.panel.active { display: block; }
+
+/* Cards */
+.card { background: #1a1d2e; border-radius: 12px; padding: 16px; border: 1px solid #2a2d3e; }
+.card-title { font-size: 12px; color: #888; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 16px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 16px; }
+
+/* Risk gauge */
+.gauge-wrap { display: flex; flex-direction: column; align-items: center; }
+.gauge-num { font-size: 32px; font-weight: 600; margin-top: 8px; }
+.gauge-label { font-size: 13px; color: #888; margin-top: 4px; }
+
+/* Stat cards */
+.stat { background: #1a1d2e; border-radius: 10px; padding: 14px; border: 1px solid #2a2d3e; }
+.stat-label { font-size: 11px; color: #888; margin-bottom: 6px; }
+.stat-value { font-size: 20px; font-weight: 500; }
+
+/* Alerts */
+.alert-item { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 8px; }
+.alert-high { background: rgba(239,68,68,0.15); color: #f87171; border-left: 3px solid #ef4444; }
+.alert-moderate { background: rgba(234,179,8,0.15); color: #facc15; border-left: 3px solid #eab308; }
+.alert-low { background: rgba(74,222,128,0.15); color: #4ade80; border-left: 3px solid #22c55e; }
+
+/* Factor bars */
+.factor-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.factor-name { font-size: 12px; color: #888; min-width: 80px; }
+.factor-bar-wrap { flex: 1; height: 6px; background: #2a2d3e; border-radius: 3px; overflow: hidden; }
+.factor-bar { height: 100%; border-radius: 3px; transition: width 0.4s; }
+.factor-val { font-size: 12px; color: #888; min-width: 35px; text-align: right; }
+
+/* Pipeline */
+.pipeline { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.stage { padding: 8px 14px; border-radius: 8px; font-size: 12px; background: #2a2d3e; color: #888; transition: all 0.3s; }
+.stage.active { background: rgba(74,222,128,0.2); color: #4ade80; }
+.stage.done { background: rgba(74,222,128,0.1); color: #4ade80; }
+.arrow { color: #444; font-size: 14px; }
+
+/* Model version cards */
+.version-card { background: #1a1d2e; border-radius: 10px; padding: 14px; border: 2px solid #2a2d3e; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s; }
+.version-card.active-model { border-color: #4ade80; }
+.version-card:hover { border-color: #4ade80; }
+.version-btn { padding: 6px 14px; border-radius: 6px; font-size: 12px; border: none; cursor: pointer; background: #4ade80; color: #0f1117; font-weight: 500; }
+
+/* Slider */
+.slider-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.slider-wrap label { font-size: 13px; color: #888; min-width: 120px; }
+input[type=range] { flex: 1; accent-color: #4ade80; }
+.slider-val { font-size: 13px; font-weight: 500; min-width: 35px; }
+
+/* Feed */
+.feed-item { background: #1a1d2e; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; border: 1px solid #2a2d3e; display: flex; justify-content: space-between; align-items: center; }
+.feed-name { font-size: 13px; font-weight: 500; }
+.feed-sub { font-size: 11px; color: #888; margin-top: 2px; }
+.risk-badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+.badge-high { background: rgba(239,68,68,0.2); color: #f87171; }
+.badge-moderate { background: rgba(234,179,8,0.2); color: #facc15; }
+.badge-low { background: rgba(74,222,128,0.2); color: #4ade80; }
+
+button { cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Dropout Risk Management System</h1>
+    <div class="subtitle">StudentForecastPortal · by HNAIResearcher</div>
+  </div>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <span style="font-size:13px;"><span class="status-dot"></span><span id="connStatus">Connecting...</span></span>
+    <span class="brand">HNAIResearcher</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('teacher')">🎓 Teacher View</div>
+  <div class="tab" onclick="switchTab('admin')">⚙️ Admin View</div>
+  <div class="tab" onclick="switchTab('student')">👤 Student View</div>
+  <div class="tab" onclick="switchTab('pipeline')">🔄 Pipeline</div>
+</div>
+
+<!-- TEACHER VIEW -->
+<div id="tab-teacher" class="panel active">
+  <div class="grid-3">
+    <div class="stat"><div class="stat-label">Students monitored</div><div class="stat-value" id="totalCount">0</div></div>
+    <div class="stat"><div class="stat-label">High risk alerts</div><div class="stat-value" id="highCount" style="color:#f87171;">0</div></div>
+    <div class="stat"><div class="stat-label">Active model</div><div class="stat-value" style="font-size:13px;" id="activeModelStat">--</div></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Live risk gauge</div>
+      <div class="gauge-wrap">
+        <svg viewBox="0 0 160 90" style="width:180px;">
+          <path d="M20 85 A60 60 0 0 1 140 85" fill="none" stroke="#2a2d3e" stroke-width="14" stroke-linecap="round"></path>
+          <path id="gaugeArc" d="M20 85 A60 60 0 0 1 140 85" fill="none" stroke="#4ade80" stroke-width="14" stroke-linecap="round" stroke-dasharray="188" stroke-dashoffset="188"></path>
+        </svg>
+        <div class="gauge-num" id="gaugeNum">--</div>
+        <div class="gauge-label" id="gaugeLabel">waiting for data</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Top risk factors</div>
+      <div id="factorBars"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-title">Live student feed</div>
+    <div id="studentFeed"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Alerts & interventions</div>
+    <div id="alertFeed"></div>
+  </div>
+</div>
+
+<!-- ADMIN VIEW -->
+<div id="tab-admin" class="panel">
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-title">Model versions — click to switch active model</div>
+    <div id="versionCards"></div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-title">Sensitivity threshold</div>
+    <div class="slider-wrap">
+      <label>Risk threshold</label>
+      <input type="range" id="sensitivitySlider" min="0.1" max="0.9" step="0.05" value="0.5">
+      <span class="slider-val" id="sensitivityVal">0.5</span>
+    </div>
+    <p style="font-size:12px; color:#888;">Higher = more sensitive (flags more students as at-risk)</p>
+  </div>
+
+  <div class="grid-3">
+    <div class="stat"><div class="stat-label">Active model accuracy</div><div class="stat-value" id="metricAccuracy">--</div></div>
+    <div class="stat"><div class="stat-label">F1 score</div><div class="stat-value" id="metricF1">--</div></div>
+    <div class="stat"><div class="stat-label">AUC-ROC</div><div class="stat-value" id="metricAUC">--</div></div>
+  </div>
+</div>
+
+<!-- STUDENT VIEW -->
+<div id="tab-student" class="panel">
+  <div class="card" style="margin-bottom:16px; text-align:center; padding:24px;">
+    <div style="font-size:14px; color:#888; margin-bottom:8px;">Your current risk level</div>
+    <div class="gauge-num" id="studentRisk" style="font-size:48px;">--</div>
+    <div id="studentLabel" style="font-size:14px; margin-top:8px; color:#888;">--</div>
+    <div id="studentTrend" style="font-size:13px; margin-top:12px; color:#4ade80;"></div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-title">What's affecting your score</div>
+    <div id="studentFactors"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Recommended action</div>
+    <div id="studentIntervention" style="font-size:14px; padding:8px 0; color:#eee;"></div>
+  </div>
+</div>
+
+<!-- PIPELINE VIEW -->
+<div id="tab-pipeline" class="panel">
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-title">Live prediction pipeline</div>
+    <div class="pipeline">
+      <div class="stage" id="stage0">Data input</div>
+      <div class="arrow">→</div>
+      <div class="stage" id="stage1">Validation</div>
+      <div class="arrow">→</div>
+      <div class="stage" id="stage2">Feature scaling</div>
+      <div class="arrow">→</div>
+      <div class="stage" id="stage3">Risk scoring</div>
+      <div class="arrow">→</div>
+      <div class="stage" id="stage4">Intervention</div>
+    </div>
+    <div id="pipelineStatus" style="font-size:13px; color:#888; margin-top:8px;">Waiting for prediction...</div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-title">Last prediction details</div>
+    <div id="pipelineDetails" style="font-size:13px; color:#888;">No prediction yet</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Model performance leaderboard</div>
+    <div id="leaderboard"></div>
+  </div>
+</div>
+
+<script>
+const BASE = "https://carport-curtain-freckles.ngrok-free.dev";
+const WS   = BASE.replace("https://","wss://") + "/ws";
+const HDR  = {"ngrok-skip-browser-warning":"true"};
+
+let totalCount = 0, highCount = 0;
+let prevRisk = null;
+let lastData = null;
+
+// Tab switching
+function switchTab(name) {
+  document.querySelectorAll(".tab").forEach((t,i) => t.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  const tabs = ["teacher","admin","student","pipeline"];
+  document.querySelectorAll(".tab")[tabs.indexOf(name)].classList.add("active");
+  document.getElementById("tab-"+name).classList.add("active");
+}
+
+// Color helpers
+function colorFor(label) {
+  if (label==="high") return "#f87171";
+  if (label==="moderate") return "#facc15";
+  return "#4ade80";
+}
+function badgeClass(label) {
+  return label==="high" ? "badge-high" : label==="moderate" ? "badge-moderate" : "badge-low";
+}
+
+// Update gauge
+function updateGauge(risk, label) {
+  const pct = risk * 100;
+  const offset = 188 - (risk * 188);
+  const arc = document.getElementById("gaugeArc");
+  arc.style.strokeDashoffset = offset;
+  arc.style.stroke = colorFor(label);
+  document.getElementById("gaugeNum").textContent = Math.round(pct) + "%";
+  document.getElementById("gaugeNum").style.color = colorFor(label);
+  document.getElementById("gaugeLabel").textContent = label + " risk";
+}
+
+// Update factor bars
+function updateFactors(features, label, containerId) {
+  const el = document.getElementById(containerId);
+  const items = [
+    {name:"attendance", val:features.attendance, max:100},
+    {name:"assignments", val:features.assignments, max:100},
+    {name:"quiz score", val:features.quiz_score, max:100},
+    {name:"GPA", val:features.gpa*25, max:100},
+    {name:"motivation", val:features.motivation*10, max:100},
+  ];
+  el.innerHTML = items.map(f => `
+    <div class="factor-row">
+      <span class="factor-name">${f.name}</span>
+      <div class="factor-bar-wrap">
+        <div class="factor-bar" style="width:${f.val.toFixed(0)}%; background:${colorFor(label)};"></div>
+      </div>
+      <span class="factor-val">${f.val.toFixed(0)}%</span>
+    </div>`).join("");
+}
+
+// Update student feed
+function updateFeed(data) {
+  const feed = document.getElementById("studentFeed");
+  const item = document.createElement("div");
+  item.className = "feed-item";
+  item.innerHTML = `
+    <div>
+      <div class="feed-name">${data.student_name}</div>
+      <div class="feed-sub">Attendance: ${data.features.attendance}% · GPA: ${data.features.gpa} · Latency: ${data.latency_ms}ms</div>
+    </div>
+    <span class="risk-badge ${badgeClass(data.risk_label)}">${data.risk_label} · ${Math.round(data.risk_score*100)}%</span>`;
+  feed.prepend(item);
+  if (feed.children.length > 5) feed.removeChild(feed.lastChild);
+}
+
+// Update alerts
+function updateAlerts(data) {
+  if (data.risk_label === "low") return;
+  const feed = document.getElementById("alertFeed");
+  const item = document.createElement("div");
+  item.className = `alert-item alert-${data.risk_label}`;
+  item.innerHTML = `<strong>${data.student_name}</strong> — ${data.intervention}`;
+  feed.prepend(item);
+  if (feed.children.length > 5) feed.removeChild(feed.lastChild);
+}
+
+// Pipeline animation
+async function animatePipeline(data) {
+  const stages = ["stage0","stage1","stage2","stage3","stage4"];
+  const labels = ["Data input","Validation","Feature scaling","Risk scoring","Intervention"];
+  for (let i = 0; i < stages.length; i++) {
+    stages.forEach(s => document.getElementById(s).className = "stage done");
+    document.getElementById(stages[i]).className = "stage active";
+    document.getElementById("pipelineStatus").textContent = `Processing: ${labels[i]}...`;
+    await new Promise(r => setTimeout(r, 200));
+  }
+  stages.forEach(s => document.getElementById(s).className = "stage done");
+  document.getElementById("pipelineStatus").textContent =
+    `✅ Complete — ${data.student_name} scored ${Math.round(data.risk_score*100)}% risk in ${data.latency_ms}ms`;
+  document.getElementById("pipelineDetails").innerHTML = `
+    <strong>Student:</strong> ${data.student_name}<br>
+    <strong>Risk score:</strong> ${Math.round(data.risk_score*100)}% (${data.risk_label})<br>
+    <strong>Model used:</strong> ${data.model_used}<br>
+    <strong>Intervention:</strong> ${data.intervention}<br>
+    <strong>Prediction latency:</strong> ${data.latency_ms}ms<br>
+    <strong>Timestamp:</strong> ${data.timestamp}`;
+}
+
+// Load versions into admin panel
+async function loadVersions() {
+  const r = await fetch(`${BASE}/versions`, {headers: HDR});
+  const data = await r.json();
+  const el = document.getElementById("versionCards");
+  el.innerHTML = data.versions.map(v => `
+    <div class="version-card ${v.active ? 'active-model' : ''}" id="vc-${v.id}">
+      <div>
+        <div style="font-size:14px; font-weight:500;">${v.algorithm}</div>
+        <div style="font-size:12px; color:#888; margin-top:4px;">
+          Accuracy: ${(v.accuracy*100).toFixed(1)}% · F1: ${v.f1_score} · AUC: ${v.auc_roc}
+        </div>
+      </div>
+      <button class="version-btn" onclick="switchModel('${v.id}')">
+        ${v.active ? "✅ Active" : "Switch"}
+      </button>
+    </div>`).join("");
+
+  // Update leaderboard
+  const lb = document.getElementById("leaderboard");
+  const sorted = [...data.versions].sort((a,b) => b.accuracy - a.accuracy);
+  lb.innerHTML = sorted.map((v,i) => `
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #2a2d3e;">
+      <div>
+        <span style="font-size:13px; color:#888; margin-right:8px;">#${i+1}</span>
+        <span style="font-size:13px; font-weight:500;">${v.algorithm}</span>
+      </div>
+      <div style="font-size:12px; color:#888;">
+        Acc: ${(v.accuracy*100).toFixed(1)}% · F1: ${v.f1_score} · AUC: ${v.auc_roc}
+      </div>
+    </div>`).join("");
+}
+
+// Switch active model
+async function switchModel(id) {
+  await fetch(`${BASE}/versions/switch/${id}`, {method:"POST", headers:HDR});
+  await loadVersions();
+  await loadMetrics();
+}
+
+// Load metrics
+async function loadMetrics() {
+  const r = await fetch(`${BASE}/metrics`, {headers:HDR});
+  const m = await r.json();
+  document.getElementById("metricAccuracy").textContent = (m.accuracy*100).toFixed(1)+"%";
+  document.getElementById("metricF1").textContent = m.f1_score;
+  document.getElementById("metricAUC").textContent = m.auc_roc;
+  document.getElementById("activeModelStat").textContent = m.active_model.replace("v1_","").replace("v2_","").replace("v3_","").replace("_"," ");
+}
+
+// Sensitivity slider
+document.getElementById("sensitivitySlider").addEventListener("change", async (e) => {
+  const val = e.target.value;
+  document.getElementById("sensitivityVal").textContent = val;
+  await fetch(`${BASE}/sensitivity/${val}`, {method:"POST", headers:HDR});
+});
+
+// WebSocket connection
+function connect() {
+  const ws = new WebSocket(WS);
+
+  ws.onopen = () => {
+    document.getElementById("connStatus").textContent = "Live";
+  };
+
+  ws.onclose = () => {
+    document.getElementById("connStatus").textContent = "Reconnecting...";
+    setTimeout(connect, 2000);
+  };
+
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    lastData = data;
+
+    // Update counts
+    totalCount++;
+    if (data.risk_label === "high") highCount++;
+    document.getElementById("totalCount").textContent = totalCount;
+    document.getElementById("highCount").textContent = highCount;
+
+    // Teacher view
+    updateGauge(data.risk_score, data.risk_label);
+    updateFactors(data.features, data.risk_label, "factorBars");
+    updateFeed(data);
+    updateAlerts(data);
+
+    // Student view
+    const pct = Math.round(data.risk_score * 100);
+    document.getElementById("studentRisk").textContent = pct + "%";
+    document.getElementById("studentRisk").style.color = colorFor(data.risk_label);
+    document.getElementById("studentLabel").textContent = data.risk_label + " risk";
+    if (prevRisk !== null) {
+      const diff = pct - Math.round(prevRisk * 100);
+      document.getElementById("studentTrend").textContent =
+        diff < 0 ? `↓ Improved by ${Math.abs(diff)}% — keep it up!` :
+        diff > 0 ? `↑ Risk increased by ${diff}% — take action` :
+        "→ Holding steady";
+    }
+    prevRisk = data.risk_score;
+    updateFactors(data.features, data.risk_label, "studentFactors");
+    document.getElementById("studentIntervention").textContent = data.intervention;
+
+    // Pipeline view
+    animatePipeline(data);
+  };
+}
+
+// Initialize
+loadVersions();
+loadMetrics();
+connect();
+</script>
+</body>
+</html>
